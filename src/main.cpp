@@ -8,8 +8,8 @@
 #include <RtcDS3231.h>
 
 // Temperatursensoren
-#define DHT_1_DATA_PIN 3
-#define DHT_2_DATA_PIN 4
+#define DHT_1_DATA_PIN 2
+#define DHT_2_DATA_PIN 3
 #define DHT_TYPE DHT::DHT22
 
 DHT dht_1;
@@ -36,7 +36,7 @@ File configFile;
 #define BFS_1 A1
 #define BFS_2 A2
 
-#define BFS_DEBUG_CALIBRATE_PIN 9
+#define BFS_DEBUG_CALIBRATE_PIN 5
 
 #define BFS_1_BOTTOM_EEPROM_ADDR 0
 #define BFS_2_BOTTOM_EEPROM_ADDR 1
