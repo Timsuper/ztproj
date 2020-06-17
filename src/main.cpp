@@ -63,17 +63,17 @@ bool bfs_calibrate() {
   uint8_t bfs_1_top;
   uint8_t bfs_2_top;
 
-  Serial.println("Kablibrierung der Bodenfeuchtesensoren");
-  Serial.println("Reihenfolge:");
-  Serial.println("1. Sensor 1 (trocken an der Luft");
-  Serial.println("2. Sensor 2 (trocken an der Luft");
-  Serial.println("3. Sensor 1 (in feuchte Erde stecken)");
-  Serial.println("4. Sensor 2 (in feuchte Erde stecken)");
+  Serial.println(F("Kablibrierung der Bodenfeuchtesensoren"));
+  Serial.println(F("Reihenfolge:"));
+  Serial.println(F("1. Sensor 1 (trocken an der Luft"));
+  Serial.println(F("2. Sensor 2 (trocken an der Luft"));
+  Serial.println(F("3. Sensor 1 (in feuchte Erde stecken)"));
+  Serial.println(F("4. Sensor 2 (in feuchte Erde stecken)"));
   Serial.println();
-  Serial.println("Die Werte werden im EEPROM automatisch gespeichert!");
+  Serial.println(F("Die Werte werden im EEPROM automatisch gespeichert!"));
 
   Serial.println();
-  Serial.print("warte: ");
+  Serial.print(F("warte: "));
 
   for (size_t i = 5; i < 0; i--)
   {
@@ -84,9 +84,9 @@ bool bfs_calibrate() {
   Serial.println();
 
   /// BFS Sensor 1 trocken ermitteln
-  Serial.println("Sensor 1 trocken:");
+  Serial.println(F("Sensor 1 trocken:"));
   Serial.println();
-  Serial.print("warte: ");
+  Serial.print(F("warte: "));
   
   for (size_t i = 5; i < 0; i--)
   {
@@ -101,9 +101,9 @@ bool bfs_calibrate() {
   /// Ende
 
   /// BFS Sensor 2 trocken ermitteln
-  Serial.println("Sensor 2 trocken:");
+  Serial.println(F("Sensor 2 trocken:"));
   Serial.println();
-  Serial.print("warte: ");
+  Serial.print(F("warte: "));
 
   for (size_t i = 5; i < 0; i--)
   {
@@ -118,9 +118,9 @@ bool bfs_calibrate() {
   /// Ende
 
   /// BFS Sensor 1 feucht ermitteln
-  Serial.println("Sensor 1 feucht:");
+  Serial.println(F("Sensor 1 feucht:"));
   Serial.println();
-  Serial.print("warte: ");
+  Serial.print(F("warte: "));
 
   for (size_t i = 5; i < 0; i--)
   {
@@ -135,9 +135,9 @@ bool bfs_calibrate() {
   /// Ende
 
   // BFS Sensor 2 feucht ermitteln
-  Serial.println("Sensor 2 feucht:");
+  Serial.println(F("Sensor 2 feucht:"));
   Serial.println();
-  Serial.print("warte: ");
+  Serial.print(F("warte: "));
 
   for (size_t i = 5; i < 0; i--)
   {
@@ -152,8 +152,8 @@ bool bfs_calibrate() {
 
   ///Ende
 
-  Serial.println("Alle Werte wurden ermittelt!");
-  Serial.println("Werte werden in EEPROM übernommen");
+  Serial.println(F("Alle Werte wurden ermittelt!"));
+  Serial.println(F("Werte werden in EEPROM übernommen"));
   Serial.println();
   Serial.println("Sensor 1 trocken: " + bfs_1_bottom);
   Serial.println("Sensor 2 trocken: " + bfs_2_bottom);
@@ -184,8 +184,8 @@ void setup() {
   pinMode(UNO_HW_SS, OUTPUT);
 
   if (!SD.begin(UNO_HW_SS)) {
-    Serial.println("SD Card failed, or not present");
-    Serial.println("while(true)");
+    Serial.println(F("SD Card failed, or not present"));
+    Serial.print(F("while(true)"));
     while (1);
   }
 
@@ -193,8 +193,8 @@ void setup() {
 
   dataFile = SD.open("datalog.tsv", FILE_WRITE);
   if (! dataFile) {
-    Serial.println("error opening datalog.tsv");
-    Serial.println("while(true)");
+    Serial.println(F("error opening datalog.tsv"));
+    Serial.println(F("while(true)"));
     while (1);
   }
   
@@ -209,7 +209,7 @@ void setup() {
 
   if (!Rtc.IsDateTimeValid()) {
     if (Rtc.LastError() != 0) {
-        Serial.print("RTC communications error = ");
+        Serial.print(F("RTC communications error = "));
         Serial.println(Rtc.LastError());
     }
     else {
@@ -236,8 +236,8 @@ void setup() {
   pinMode(BFS_DEBUG_CALIBRATE_PIN , INPUT_PULLUP);
 
   if ((bfs_1_bottom_value == 0 && bfs_2_bottom_value == 0 && bfs_1_top_value == 0 && bfs_2_top_value == 0) || digitalRead(BFS_DEBUG_CALIBRATE_PIN) == HIGH) {
-    Serial.println("keine Kalibrierung erfolgt...");
-    Serial.print("leite Kalibrierung ein...  ");
+    Serial.println(F("keine Kalibrierung erfolgt..."));
+    Serial.print(F("leite Kalibrierung ein...  "));
 
     for (size_t i = 3; i < 0; i--)
     {
@@ -248,7 +248,7 @@ void setup() {
 
     bfs_calibrate();
     
-    Serial.println("Boote neu, Daten sollten gespeichert sein...");
+    Serial.println(F("Boote neu, Daten sollten gespeichert sein..."));
     Serial.println();
     for (size_t i = 5; i < 0; i--)
     {
@@ -260,12 +260,12 @@ void setup() {
 
   configFile = SD.open("bfs_kalibrierung.txt", FILE_WRITE);
   if (! dataFile) {
-    Serial.println("error opening bfs_kalibrierung.txt");
-    Serial.println("while(true)");
+    Serial.println(F("error opening bfs_kalibrierung.txt"));
+    Serial.println(F("while(true)"));
     while (1);
   } else {
-    configFile.println("Bodenfeuchte Sensoren Kalibrierung");
-    configFile.println("(untere und obere A/D Werte)");
+    configFile.println(F("Bodenfeuchte Sensoren Kalibrierung"));
+    configFile.println(F("(untere und obere A/D Werte)"));
     configFile.println("Sensor 1 trocken Wert: " + bfs_1_bottom_value);
     configFile.println("Sensor 2 trocken Wert: " + bfs_2_bottom_value);
     configFile.println("Sensor 1 feucht Wert: " + bfs_1_top_value);
@@ -280,14 +280,13 @@ void loop() {
   String dataString = "";
 
   if (file_already_exists == false) {
-    dataFile.println("Datum Uhrzeit Temp_1  Temp_2  Humd_1  Humd_2  BFS_1 BFS_2");
+    dataFile.println(F("Datum/Uhrzeit Temp_1  Temp_2  Humd_1  Humd_2  BFS_1 BFS_2"));
     file_already_exists = true;
   }
 
   // Uhrzeit
   RtcDateTime now = Rtc.GetDateTime();
-  dataString += String(now.Year()) + "-" + String(now.Month()) + "-" + String(now.Day()) + "  ";
-  dataString += String(now.Hour()) + ":" + String(now.Minute()) + ":" + String(now.Second()) + "  ";
+  dataString += String(now.Year()) + "-" + String(now.Month()) + "-" + String(now.Day()) + " " + String(now.Hour()) + ":" + String(now.Minute()) + ":" + String(now.Second()) + " ";
 
   // Messung
   dataString += String(dht_1.getTemperature()) + "  ";
