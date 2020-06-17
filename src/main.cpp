@@ -5,6 +5,7 @@
 #include <SPI.h>
 #include <SD.h>
 #include <DHT.h>
+#include <RtcDS3231.h>
 
 // Temperatursensoren
 #define DHT_1_DATA_PIN 3
@@ -28,104 +29,33 @@ DHT dht_2;
 #define UNO_HW_SS 10
 
 File dataFile;
+File configFile;
 
 // Bodenfeuchtesensoren
 
 #define BFS_1 A1
 #define BFS_2 A2
 
+#define BFS_DEBUG_CALIBRATE_PIN 9
+
 #define BFS_1_BOTTOM_EEPROM_ADDR 0
 #define BFS_2_BOTTOM_EEPROM_ADDR 1
 #define BFS_1_TOP_EEPROM_ADRR 2
 #define BFS_2_TOP_EEPROM_ADRR 3
-
-// RTC
-
-unsigned long time;
-
-const int messinterval = 10000;
 
 uint8_t bfs_1_bottom_value;
 uint8_t bfs_2_bottom_value;
 uint8_t bfs_1_top_value;
 uint8_t bfs_2_top_value;
 
-/* To-Do:
-- Analog Sensoren für Bodenfeuchte
-- RTC einbauen?
-*/
+// RTC
+// Anschluss erfolgt per I2C nicht SPI! (Anschlüsse sind auf dem Uno seperat über Pin 13)
+RtcDS3231<TwoWire> Rtc(Wire);
 
-void setup() {
-  Serial.begin(9600);
-
-  // WDT
-  // Register für WDT sicherheitshalber zurücksetzen
-  MCUCR = 0;
-
-  // SD Karte
-  pinMode(UNO_HW_SS, OUTPUT);
-
-  if (!SD.begin(UNO_HW_SS)) {
-    Serial.println("SD Card failed, or not present");
-    Serial.println("while(true)");
-    while (1);
-  }
-
-  dataFile = SD.open("datalog.tsv", FILE_WRITE);
-  if (! dataFile) {
-    Serial.println("error opening datalog.txt");
-    Serial.println("while(true)");
-    while (1);
-  }
-  
-  // DHT
-  dht_1.setup(DHT_1_DATA_PIN, DHT_TYPE);
-  dht_2.setup(DHT_2_DATA_PIN, DHT_TYPE);
-
-  // RTC
-
-  // BFS
-  pinMode(BFS_1, INPUT);
-  pinMode(BFS_2, INPUT);
-
-  wdt_enable(WDTO_500MS);
-
-  bfs_1_bottom_value = EEPROM.read(BFS_1_BOTTOM_EEPROM_ADDR);
-  bfs_2_bottom_value = EEPROM.read(BFS_2_BOTTOM_EEPROM_ADDR);
-  bfs_1_top_value = EEPROM.read(BFS_1_TOP_EEPROM_ADRR);
-  bfs_2_top_value = EEPROM.read(BFS_2_TOP_EEPROM_ADRR);
-
-  wdt_reset();
-  wdt_disable();
-}
-
-void loop() {
-  time = millis();
-  String dataString;
-
-  // Messung
-
-
-  // Datenspeicherung auf der SD Karte
-  dataFile.println(dataString);
-  Serial.println(dataString);
-
-  dataFile.flush();
-
-  /* Arduino nach max. 50 Tagen Dauerberieb neustarten
-  siehe millis() Maximalwerte
-  Das ist notwenig, da delay() auf dem Zähler von millis() basiert! (Overflow nach 50 Tagen)
-  */
-  if (time >= 4294000000) {
-    //wdt_enable(WDTO_1S);
-    for (;;) {
-
-    }
-  }
-
-  // Messintervall
-  delay(messinterval);
-}
+// Allegemin
+unsigned long time;
+const int messinterval_ms = 10000;
+bool file_already_exists;
 
 bool bfs_calibrate() {
   uint8_t bfs_1_bottom;
@@ -224,6 +154,11 @@ bool bfs_calibrate() {
 
   Serial.println("Alle Werte wurden ermittelt!");
   Serial.println("Werte werden in EEPROM übernommen");
+  Serial.println();
+  Serial.println("Sensor 1 trocken: " + bfs_1_bottom);
+  Serial.println("Sensor 2 trocken: " + bfs_2_bottom);
+  Serial.println("Sensor 1 feucht: " + bfs_1_top);
+  Serial.println("Sensor 2 feucht: " + bfs_2_bottom);
 
   wdt_enable(WDTO_500MS);
   
@@ -236,4 +171,148 @@ bool bfs_calibrate() {
   wdt_disable();
 
   return true;
+}
+
+void setup() {
+  Serial.begin(9600);
+
+  // WDT
+  // Register für WDT sicherheitshalber zurücksetzen
+  MCUCR = 0;
+
+  // SD Karte
+  pinMode(UNO_HW_SS, OUTPUT);
+
+  if (!SD.begin(UNO_HW_SS)) {
+    Serial.println("SD Card failed, or not present");
+    Serial.println("while(true)");
+    while (1);
+  }
+
+  file_already_exists = (SD.exists("datalog.tsv")) ? true : false;
+
+  dataFile = SD.open("datalog.tsv", FILE_WRITE);
+  if (! dataFile) {
+    Serial.println("error opening datalog.tsv");
+    Serial.println("while(true)");
+    while (1);
+  }
+  
+  // DHT
+  dht_1.setup(DHT_1_DATA_PIN, DHT_TYPE);
+  dht_2.setup(DHT_2_DATA_PIN, DHT_TYPE);
+
+  // RTC
+  Rtc.Begin();
+
+  RtcDateTime time_compiled = RtcDateTime(__DATE__, __TIME__);
+
+  if (!Rtc.IsDateTimeValid()) {
+    if (Rtc.LastError() != 0) {
+        Serial.print("RTC communications error = ");
+        Serial.println(Rtc.LastError());
+    }
+    else {
+      //    1) first time you ran and the device wasn't running yet
+      //    2) the battery on the device is low or even missing
+
+      Rtc.SetDateTime(time_compiled);
+    }
+  }
+
+  if (!Rtc.GetIsRunning()) {
+    Rtc.SetIsRunning(true);
+  }
+
+  // BFS
+  pinMode(BFS_1, INPUT);
+  pinMode(BFS_2, INPUT);
+
+  bfs_1_bottom_value = EEPROM.read(BFS_1_BOTTOM_EEPROM_ADDR);
+  bfs_2_bottom_value = EEPROM.read(BFS_2_BOTTOM_EEPROM_ADDR);
+  bfs_1_top_value = EEPROM.read(BFS_1_TOP_EEPROM_ADRR);
+  bfs_2_top_value = EEPROM.read(BFS_2_TOP_EEPROM_ADRR);
+
+  pinMode(BFS_DEBUG_CALIBRATE_PIN , INPUT_PULLUP);
+
+  if ((bfs_1_bottom_value == 0 && bfs_2_bottom_value == 0 && bfs_1_top_value == 0 && bfs_2_top_value == 0) || digitalRead(BFS_DEBUG_CALIBRATE_PIN) == HIGH) {
+    Serial.println("keine Kalibrierung erfolgt...");
+    Serial.print("leite Kalibrierung ein...  ");
+
+    for (size_t i = 3; i < 0; i--)
+    {
+      Serial.print(i + "  ");
+    }
+
+    Serial.println();
+
+    bfs_calibrate();
+    
+    Serial.println("Boote neu, Daten sollten gespeichert sein...");
+    Serial.println();
+    for (size_t i = 5; i < 0; i--)
+    {
+      Serial.print(i + "  ");
+    }
+    wdt_enable(WDTO_250MS);
+    while(1);
+  }
+
+  configFile = SD.open("bfs_kalibrierung.txt", FILE_WRITE);
+  if (! dataFile) {
+    Serial.println("error opening bfs_kalibrierung.txt");
+    Serial.println("while(true)");
+    while (1);
+  } else {
+    configFile.println("Bodenfeuchte Sensoren Kalibrierung");
+    configFile.println("(untere und obere A/D Werte)");
+    configFile.println("Sensor 1 trocken Wert: " + bfs_1_bottom_value);
+    configFile.println("Sensor 2 trocken Wert: " + bfs_2_bottom_value);
+    configFile.println("Sensor 1 feucht Wert: " + bfs_1_top_value);
+    configFile.println("Sensor 2 feucht Wert: " + bfs_2_top_value);
+
+    configFile.close();
+  }
+}
+
+void loop() {
+  time = millis();
+  String dataString = "";
+
+  if (file_already_exists == false) {
+    dataFile.println("Datum Uhrzeit Temp_1  Temp_2  Humd_1  Humd_2  BFS_1 BFS_2");
+    file_already_exists = true;
+  }
+
+  // Uhrzeit
+  RtcDateTime now = Rtc.GetDateTime();
+  dataString += String(now.Year()) + "-" + String(now.Month()) + "-" + String(now.Day()) + "  ";
+  dataString += String(now.Hour()) + ":" + String(now.Minute()) + ":" + String(now.Second()) + "  ";
+
+  // Messung
+  dataString += String(dht_1.getTemperature()) + "  ";
+  dataString += String(dht_2.getTemperature()) + "  ";
+  dataString += String(dht_1.getHumidity()) + " ";
+  dataString += String(dht_2.getHumidity()) + " ";
+  dataString += String(analogRead(BFS_1)) + " ";
+  dataString += String(analogRead(BFS_2));
+
+  // Datenspeicherung auf der SD Karte
+  dataFile.println(dataString);
+  Serial.println(dataString);
+
+  dataFile.flush();
+
+  /* Arduino nach max. 50 Tagen Dauerberieb neustarten
+  siehe millis() Maximalwerte
+  Das ist notwenig, da delay() auf dem Zähler von millis() basiert! (Overflow nach 50 Tagen)
+  86400000 = 1 Tag in ms, Neustart alle 24h
+  */
+  if (time >= 86400000) {
+    wdt_enable(WDTO_500MS);
+    while(1);
+  }
+
+  // Messintervall
+  delay(messinterval_ms);
 }
