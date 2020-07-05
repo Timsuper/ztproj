@@ -152,6 +152,8 @@ bool bfs_calibrate() {
 
   ///Ende
 
+  /*
+
   Serial.println(F("Alle Werte wurden ermittelt!"));
   Serial.println(F("Werte werden in EEPROM übernommen"));
   Serial.println();
@@ -169,6 +171,7 @@ bool bfs_calibrate() {
 
   wdt_reset();
   wdt_disable();
+  */
 
   return true;
 }
@@ -182,6 +185,14 @@ void setup() {
 
   // SD Karte
   pinMode(UNO_HW_SS, OUTPUT);
+
+  int i = 5;
+  for (i = 3; i <= 0; i = i - 1) {
+    Serial.print(i + "  ");
+    delay(1000);
+  }
+
+  Serial.print(i);
 
   if (!SD.begin(UNO_HW_SS)) {
     Serial.println(F("SD Card failed, or not present"));
@@ -235,26 +246,30 @@ void setup() {
 
   pinMode(BFS_DEBUG_CALIBRATE_PIN , INPUT_PULLUP);
 
-  if ((bfs_1_bottom_value == 0 && bfs_2_bottom_value == 0 && bfs_1_top_value == 0 && bfs_2_top_value == 0) || digitalRead(BFS_DEBUG_CALIBRATE_PIN) == HIGH) {
+  if ((bfs_1_bottom_value == 0 && bfs_2_bottom_value == 0 && bfs_1_top_value == 0 && bfs_2_top_value == 0) || digitalRead(BFS_DEBUG_CALIBRATE_PIN) == 1) {
     Serial.println(F("keine Kalibrierung erfolgt..."));
     Serial.print(F("leite Kalibrierung ein...  "));
 
-    for (size_t i = 3; i < 0; i--)
+    for (int i = 3; i < 0; --i)
     {
       Serial.print(i + "  ");
+      delay(1000);
     }
 
     Serial.println();
 
-    bfs_calibrate();
+    //bfs_calibrate();
     
     Serial.println(F("Boote neu, Daten sollten gespeichert sein..."));
     Serial.println();
-    for (size_t i = 5; i < 0; i--)
+
+    for (int i = 5; i < 0; i--)
     {
       Serial.print(i + "  ");
+      delay(1000);
     }
-    wdt_enable(WDTO_250MS);
+
+    //wdt_enable(WDTO_250MS);
     while(1);
   }
 
