@@ -32,7 +32,6 @@ File dataFile;
 File configFile;
 
 // Bodenfeuchtesensoren
-
 #define BFS_1 A1
 #define BFS_2 A2
 
@@ -54,7 +53,7 @@ RtcDS3231<TwoWire> Rtc(Wire);
 
 // Allegemin
 unsigned long time;
-const int messinterval_ms = 10000;
+const int messinterval_ms = 60000;
 bool file_already_exists;
 
 bool bfs_calibrate() {
@@ -192,8 +191,6 @@ void setup() {
     delay(1000);
   }
 
-  Serial.print(i);
-
   if (!SD.begin(UNO_HW_SS)) {
     Serial.println(F("SD Card failed, or not present"));
     Serial.print(F("while(true)"));
@@ -216,19 +213,25 @@ void setup() {
   // RTC
   Rtc.Begin();
 
-  RtcDateTime time_compiled = RtcDateTime(__DATE__, __TIME__);
+  Serial.println("compiled: " + String(F(__DATE__)) + " " + String(F(__TIME__)));
+
+  RtcDateTime compiled = RtcDateTime(__DATE__, __TIME__);
+
+  Serial.println();
 
   if (!Rtc.IsDateTimeValid()) {
     if (Rtc.LastError() != 0) {
-        Serial.print(F("RTC communications error = "));
+        Serial.print(F("RTC communication error = "));
         Serial.println(Rtc.LastError());
     }
     else {
       //    1) first time you ran and the device wasn't running yet
       //    2) the battery on the device is low or even missing
-
-      Rtc.SetDateTime(time_compiled);
+      Serial.println("RTC time set!");
+      Rtc.SetDateTime(compiled);
     }
+  } {
+    Serial.println("RTC ok.");
   }
 
   if (!Rtc.GetIsRunning()) {
@@ -246,7 +249,7 @@ void setup() {
 
   pinMode(BFS_DEBUG_CALIBRATE_PIN , INPUT_PULLUP);
 
-  if ((bfs_1_bottom_value == 0 && bfs_2_bottom_value == 0 && bfs_1_top_value == 0 && bfs_2_top_value == 0) || digitalRead(BFS_DEBUG_CALIBRATE_PIN) == 1) {
+  if ((bfs_1_bottom_value == 0 && bfs_2_bottom_value == 0 && bfs_1_top_value == 0 && bfs_2_top_value == 0) /*|| digitalRead(BFS_DEBUG_CALIBRATE_PIN) == 1*/) {
     Serial.println(F("keine Kalibrierung erfolgt..."));
     Serial.print(F("leite Kalibrierung ein...  "));
 
@@ -288,6 +291,8 @@ void setup() {
 
     configFile.close();
   }
+
+  Serial.println(F("Datum/Uhrzeit Temp_1  Temp_2  Humd_1  Humd_2  BFS_1 BFS_2"));
 }
 
 void loop() {
